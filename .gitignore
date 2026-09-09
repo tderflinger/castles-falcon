@@ -10,3 +10,4 @@ wheels/
 .venv
 
 *.gpkg
+run.sh
