@@ -55,7 +55,7 @@ The following attributes from Wikidata are added to the `wikidata` table in the 
 - osm_node_id: The OpenStreetMap node id of the castle, if available
 - osm_relation_id: The OpenStreetMap relation id of the castle, if available
 - osm_way_id: The OpenStreetMap way id of the castle, if available
-- website: The website entry from Wikidta, if available
+- website: The website entry from Wikidata, if available
 - threed_model: The link to a 3D model of the castle, if available
 
 ## Provenance
