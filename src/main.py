@@ -25,7 +25,9 @@ class WikiDataOutput(output_base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     qid: Mapped[str] = mapped_column(String, nullable=False)
-    osm_id: Mapped[str] = mapped_column(String, nullable=False)
+    osm_node_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    osm_relation_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    osm_way_id: Mapped[str | None] = mapped_column(String, nullable=True)
     website: Mapped[str | None] = mapped_column(String, nullable=True)
 
 def setup_mappings(engine: Engine) -> None:
@@ -78,14 +80,33 @@ def ensure_output_schema(engine: Engine) -> None:
     output_base.metadata.create_all(engine)
     inspector = inspect(engine)
     column_names = {column["name"] for column in inspector.get_columns("wikidata")}
+
+    required_columns = {
+        "qid": "TEXT",
+        "osm_node_id": "TEXT",
+        "osm_relation_id": "TEXT",
+        "osm_way_id": "TEXT",
+        "website": "TEXT",
+    }
+
+    # Legacy schema includes a required osm_id column; recreate table for new layout.
+    if "osm_id" in column_names:
+        with engine.begin() as conn:
+            conn.exec_driver_sql("DROP TABLE wikidata")
+        output_base.metadata.create_all(engine)
+        return
+
     with engine.begin() as conn:
-        if "qid" not in column_names:
-            conn.exec_driver_sql("ALTER TABLE wikidata ADD COLUMN qid TEXT")
-        if "website" not in column_names:
-            conn.exec_driver_sql("ALTER TABLE wikidata ADD COLUMN website TEXT")
+        for column_name, column_type in required_columns.items():
+            if column_name not in column_names:
+                conn.exec_driver_sql(
+                    f"ALTER TABLE wikidata ADD COLUMN {column_name} {column_type}"
+                )
 
 def main(wikidata_db: str) -> None:
-    osm_property_ids: list[int] = [1000010689, 1000000402]
+    osm_node_property_id: int = 1000011693
+    osm_relation_property_id: int = 1000000402
+    osm_way_property_id: int = 1000010689
     website_property_id: int = 1000000856
 
     castles_engine = create_engine("sqlite:///castles.gpkg")
@@ -105,7 +126,7 @@ def main(wikidata_db: str) -> None:
     print("WikiData table:", wikidata_table_name)
     print("WikiData columns:", ", ".join(wikidata_columns))
 
-    castles_ext_engine = create_engine("sqlite:///castles-ext.gpkg")
+    castles_ext_engine = create_engine("sqlite:///castles-falcon.gpkg")
     ensure_output_schema(castles_ext_engine)
 
     output_rows: list[WikiDataOutput] = []
@@ -121,18 +142,38 @@ def main(wikidata_db: str) -> None:
                 .filter(WikiData.id == wikidata_id)
                 # OSM Way Id and OSM Relation Id
                 .filter(
-                    WikiData.property_id.in_(osm_property_ids + [website_property_id])
+                    WikiData.property_id.in_([osm_node_property_id, osm_relation_property_id, osm_way_property_id, website_property_id])
                 )
                 .all()
             )
             if not first_match:
                 continue
 
-            osm_id_value = next(
+            osm_node_id_value = next(
                 (
                     getattr(item, "string", None)
                     for item in first_match
-                    if item.property_id in osm_property_ids
+                    if item.property_id == osm_node_property_id
+                    and getattr(item, "string", None)
+                ),
+                None,
+            )
+
+            osm_relation_id_value = next(
+                (
+                    getattr(item, "string", None)
+                    for item in first_match
+                    if item.property_id == osm_relation_property_id
+                    and getattr(item, "string", None)
+                ),
+                None,
+            )
+
+            osm_way_id_value = next(
+                (
+                    getattr(item, "string", None)
+                    for item in first_match
+                    if item.property_id == osm_way_property_id
                     and getattr(item, "string", None)
                 ),
                 None,
@@ -151,7 +192,9 @@ def main(wikidata_db: str) -> None:
             output_rows.append(
                 WikiDataOutput(
                     qid=str(castle.qid),
-                    osm_id=str(osm_id_value),
+                    osm_node_id=osm_node_id_value,
+                    osm_relation_id=osm_relation_id_value,
+                    osm_way_id=osm_way_id_value,
                     website=website_value,
                 )
             )
@@ -161,7 +204,7 @@ def main(wikidata_db: str) -> None:
         output_session.add_all(output_rows)
         output_session.commit()
 
-    print("Written to castles-ext.gpkg table wikidata:", len(output_rows))
+    print("Written to castles-falcon.gpkg table wikidata:", len(output_rows))
 
 if __name__ == "__main__":
     args = parse_args()
