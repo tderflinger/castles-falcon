@@ -9,6 +9,6 @@ wheels/
 # Virtual environments
 .venv
 
-*.gpkg
+castles.gpkg
 run.sh
 ideas.md
