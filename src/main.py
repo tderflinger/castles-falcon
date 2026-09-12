@@ -29,6 +29,7 @@ class WikiDataOutput(output_base):
     osm_relation_id: Mapped[str | None] = mapped_column(String, nullable=True)
     osm_way_id: Mapped[str | None] = mapped_column(String, nullable=True)
     website: Mapped[str | None] = mapped_column(String, nullable=True)
+    threed_model: Mapped[str | None] = mapped_column(String, nullable=True)
 
 def setup_mappings(engine: Engine) -> None:
     castles_table = Table(
@@ -87,6 +88,7 @@ def ensure_output_schema(engine: Engine) -> None:
         "osm_relation_id": "TEXT",
         "osm_way_id": "TEXT",
         "website": "TEXT",
+        "threed_model": "TEXT",
     }
 
     # Legacy schema includes a required osm_id column; recreate table for new layout.
@@ -108,6 +110,7 @@ def main(wikidata_db: str) -> None:
     osm_relation_property_id: int = 1000000402
     osm_way_property_id: int = 1000010689
     website_property_id: int = 1000000856
+    threed_model_property_id: int = 1000004896  
 
     castles_engine = create_engine("sqlite:///castles.gpkg")
     setup_mappings(castles_engine)
@@ -132,7 +135,7 @@ def main(wikidata_db: str) -> None:
     output_rows: list[WikiDataOutput] = []
     with Session(wikidata_engine) as wikidata_session:
         for i, castle in enumerate(rows, 1):
-            print(f"[{i}]", castle.qid)
+            #print(f"[{i}]", castle.qid)
             wikidata_id = qid_to_wikidata_id(castle.qid)
             if wikidata_id is None:
                 continue
@@ -142,7 +145,7 @@ def main(wikidata_db: str) -> None:
                 .filter(WikiData.id == wikidata_id)
                 # OSM Way Id and OSM Relation Id
                 .filter(
-                    WikiData.property_id.in_([osm_node_property_id, osm_relation_property_id, osm_way_property_id, website_property_id])
+                    WikiData.property_id.in_([osm_node_property_id, osm_relation_property_id, osm_way_property_id, website_property_id, threed_model_property_id])
                 )
                 .all()
             )
@@ -189,6 +192,19 @@ def main(wikidata_db: str) -> None:
                 None,
             )
 
+            threed_model_value = next(
+                (
+                    getattr(item, "string", None)
+                    for item in first_match
+                    if item.property_id == threed_model_property_id
+                    and getattr(item, "string", None)
+                ),
+                None,
+            )
+
+            if threed_model_value:
+                print("Found 3D model for castle:", castle.qid, "Value:", threed_model_value)
+
             output_rows.append(
                 WikiDataOutput(
                     qid=str(castle.qid),
@@ -196,6 +212,7 @@ def main(wikidata_db: str) -> None:
                     osm_relation_id=osm_relation_id_value,
                     osm_way_id=osm_way_id_value,
                     website=website_value,
+                    threed_model=threed_model_value,
                 )
             )
 
