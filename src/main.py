@@ -1,81 +1,17 @@
 from typing import Any
 from args import parse_args
-from sqlalchemy import Integer, String, Table, create_engine, inspect
+from castles import Castle, connect_castles_db
+from sqlalchemy import create_engine, inspect
+from wikidata import output_base
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column, registry
+from sqlalchemy.orm import Session
+from wikidata import WikiData, WikiDataOutput, setup_wikidata_mapping, qid_to_wikidata_id
 
-mapper_registry = registry()
-output_base = declarative_base()
-
-class Castle:
-    """ORM entity mapped to the castlemap-castles table."""
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            column.key: getattr(self, column.key) for column in self.__table__.columns
-        }
-
-class WikiData:
-    """ORM entity mapped to a table in wikidata.db."""
-
-class WikiDataOutput(output_base):
-    """Output table in castles-ext.gpkg with OSM id values."""
-
-    __tablename__ = "wikidata"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    qid: Mapped[str] = mapped_column(String, nullable=False)
-    osm_node_id: Mapped[str | None] = mapped_column(String, nullable=True)
-    osm_relation_id: Mapped[str | None] = mapped_column(String, nullable=True)
-    osm_way_id: Mapped[str | None] = mapped_column(String, nullable=True)
-    website: Mapped[str | None] = mapped_column(String, nullable=True)
-    threed_model: Mapped[str | None] = mapped_column(String, nullable=True)
-
-def setup_mappings(engine: Engine) -> None:
-    castles_table = Table(
-        "castlemap-castles",
-        mapper_registry.metadata,
-        autoload_with=engine,
-    )
-    mapper_registry.map_imperatively(Castle, castles_table)
-
-def setup_wikidata_mapping(engine: Engine, table_name: str = "string") -> str:
-    inspector = inspect(engine)
-    table_names = [
-        name for name in inspector.get_table_names() if not name.startswith("sqlite_")
-    ]
-    if not table_names:
-        raise RuntimeError("No user tables found in wikidata database")
-    if table_name not in table_names:
-        raise RuntimeError(f"Table {table_name!r} not found in wikidata database")
-
-    wikidata_table = Table(
-        table_name,
-        mapper_registry.metadata,
-        autoload_with=engine,
-    )
-    pk_names = inspector.get_pk_constraint(table_name).get("constrained_columns") or []
-    if pk_names:
-        mapper_primary_key = [wikidata_table.c[name] for name in pk_names]
-    else:
-        # Some SQLite tables in wikidata.db have no declared PK.
-        # For read-only ORM mapping, use all columns as a composite identity.
-        mapper_primary_key = list(wikidata_table.c)
-
-    mapper_registry.map_imperatively(
-        WikiData,
-        wikidata_table,
-        primary_key=mapper_primary_key,
-    )
-    return table_name
-
-def qid_to_wikidata_id(qid: object) -> int | None:
-    text = str(qid).strip()
-    if text.startswith("Q"):
-        text = text[1:]
-    if not text.isdigit():
-        return None
-    return int(text)
+osm_node_property_id: int = 1000011693
+osm_relation_property_id: int = 1000000402
+osm_way_property_id: int = 1000010689
+website_property_id: int = 1000000856
+threed_model_property_id: int = 1000004896  
 
 def ensure_output_schema(engine: Engine) -> None:
     output_base.metadata.create_all(engine)
@@ -105,18 +41,9 @@ def ensure_output_schema(engine: Engine) -> None:
                     f"ALTER TABLE wikidata ADD COLUMN {column_name} {column_type}"
                 )
 
+
 def main(wikidata_db: str) -> None:
-    osm_node_property_id: int = 1000011693
-    osm_relation_property_id: int = 1000000402
-    osm_way_property_id: int = 1000010689
-    website_property_id: int = 1000000856
-    threed_model_property_id: int = 1000004896  
-
-    castles_engine = create_engine("sqlite:///castles.gpkg")
-    setup_mappings(castles_engine)
-    with Session(castles_engine) as session:
-        rows = session.query(Castle).all()
-
+    rows = connect_castles_db()
     cols = [column.key for column in Castle.__table__.columns]
 
     print("Columns:", ", ".join(cols))
@@ -135,7 +62,6 @@ def main(wikidata_db: str) -> None:
     output_rows: list[WikiDataOutput] = []
     with Session(wikidata_engine) as wikidata_session:
         for i, castle in enumerate(rows, 1):
-            #print(f"[{i}]", castle.qid)
             wikidata_id = qid_to_wikidata_id(castle.qid)
             if wikidata_id is None:
                 continue
