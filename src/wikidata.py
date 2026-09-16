@@ -1,13 +1,14 @@
-from sqlalchemy import Integer, String
-from sqlalchemy.orm import Mapped, declarative_base, mapped_column, registry
-from sqlalchemy import Table, inspect
+from sqlalchemy import Integer, String, Table, inspect
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column, registry
 
 mapper_registry = registry()
 output_base = declarative_base()
 
+
 class WikiData:
     """ORM entity mapped to a table in wikidata.db."""
+
 
 class WikiDataOutput(output_base):
     """Output table in castles-falcon.gpkg with OSM id values."""
@@ -22,6 +23,7 @@ class WikiDataOutput(output_base):
     website: Mapped[str | None] = mapped_column(String, nullable=True)
     threed_model: Mapped[str | None] = mapped_column(String, nullable=True)
     youtube_id: Mapped[str | None] = mapped_column(String, nullable=True)
+
 
 def setup_wikidata_mapping(engine: Engine, table_name: str = "string") -> str:
     inspector = inspect(engine)
@@ -55,8 +57,7 @@ def setup_wikidata_mapping(engine: Engine, table_name: str = "string") -> str:
 
 def qid_to_wikidata_id(qid: object) -> int | None:
     text = str(qid).strip()
-    if text.startswith("Q"):
-        text = text[1:]
+    text = text.removeprefix("Q")
     if not text.isdigit():
         return None
     return int(text)

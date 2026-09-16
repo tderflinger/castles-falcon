@@ -1,6 +1,7 @@
-from sqlalchemy import Engine
 from sqlalchemy import Engine, inspect
+
 from wikidata import output_base
+
 
 def ensure_output_schema(engine: Engine) -> None:
     output_base.metadata.create_all(engine)
@@ -14,7 +15,7 @@ def ensure_output_schema(engine: Engine) -> None:
         "osm_way_id": "TEXT",
         "website": "TEXT",
         "threed_model": "TEXT",
-        "youtube_id": "TEXT"
+        "youtube_id": "TEXT",
     }
 
     # Legacy schema includes a required osm_id column; recreate table for new layout.

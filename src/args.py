@@ -1,5 +1,6 @@
 import argparse
 
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Extend castles data with Wikidata attributes."

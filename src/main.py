@@ -1,9 +1,15 @@
-from args import parse_args
-from castles import Castle, connect_castles_db
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+
+from args import parse_args
+from castles import Castle, connect_castles_db
 from schema import ensure_output_schema
-from wikidata import WikiData, WikiDataOutput, setup_wikidata_mapping, qid_to_wikidata_id
+from wikidata import (
+    WikiData,
+    WikiDataOutput,
+    qid_to_wikidata_id,
+    setup_wikidata_mapping,
+)
 
 osm_node_property_id: int = 1000011693
 osm_relation_property_id: int = 1000000402
@@ -11,6 +17,7 @@ osm_way_property_id: int = 1000010689
 website_property_id: int = 1000000856
 threed_model_property_id: int = 1000004896
 youtube_property_id: int = 1000001651
+
 
 def main(wikidata_db: str) -> None:
     rows = connect_castles_db()
@@ -31,7 +38,7 @@ def main(wikidata_db: str) -> None:
 
     output_rows: list[WikiDataOutput] = []
     with Session(wikidata_engine) as wikidata_session:
-        for i, castle in enumerate(rows, 1):
+        for _i, castle in enumerate(rows, 1):
             wikidata_id = qid_to_wikidata_id(castle.qid)
             if wikidata_id is None:
                 continue
@@ -41,7 +48,16 @@ def main(wikidata_db: str) -> None:
                 .filter(WikiData.id == wikidata_id)
                 # OSM Way Id and OSM Relation Id
                 .filter(
-                    WikiData.property_id.in_([osm_node_property_id, osm_relation_property_id, osm_way_property_id, website_property_id, threed_model_property_id, youtube_property_id])
+                    WikiData.property_id.in_(
+                        [
+                            osm_node_property_id,
+                            osm_relation_property_id,
+                            osm_way_property_id,
+                            website_property_id,
+                            threed_model_property_id,
+                            youtube_property_id,
+                        ]
+                    )
                 )
                 .all()
             )
@@ -109,7 +125,12 @@ def main(wikidata_db: str) -> None:
             )
 
             if youtube_value:
-                print("Found YouTube link for castle:", castle.qid, "Value:", youtube_value)
+                print(
+                    "Found YouTube link for castle:",
+                    castle.qid,
+                    "Value:",
+                    youtube_value,
+                )
 
             output_rows.append(
                 WikiDataOutput(
@@ -129,6 +150,7 @@ def main(wikidata_db: str) -> None:
         output_session.commit()
 
     print("Written to castles-falcon.gpkg table wikidata:", len(output_rows))
+
 
 if __name__ == "__main__":
     args = parse_args()
