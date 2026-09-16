@@ -1,9 +1,8 @@
 from args import parse_args
 from castles import Castle, connect_castles_db
-from sqlalchemy import create_engine, inspect
-from wikidata import output_base
-from sqlalchemy.engine import Engine
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+from schema import ensure_output_schema
 from wikidata import WikiData, WikiDataOutput, setup_wikidata_mapping, qid_to_wikidata_id
 
 osm_node_property_id: int = 1000011693
@@ -12,35 +11,6 @@ osm_way_property_id: int = 1000010689
 website_property_id: int = 1000000856
 threed_model_property_id: int = 1000004896
 youtube_property_id: int = 1000001651
-
-def ensure_output_schema(engine: Engine) -> None:
-    output_base.metadata.create_all(engine)
-    inspector = inspect(engine)
-    column_names = {column["name"] for column in inspector.get_columns("wikidata")}
-
-    required_columns = {
-        "qid": "TEXT",
-        "osm_node_id": "TEXT",
-        "osm_relation_id": "TEXT",
-        "osm_way_id": "TEXT",
-        "website": "TEXT",
-        "threed_model": "TEXT",
-        "youtube_id": "TEXT"
-    }
-
-    # Legacy schema includes a required osm_id column; recreate table for new layout.
-    if "osm_id" in column_names:
-        with engine.begin() as conn:
-            conn.exec_driver_sql("DROP TABLE wikidata")
-        output_base.metadata.create_all(engine)
-        return
-
-    with engine.begin() as conn:
-        for column_name, column_type in required_columns.items():
-            if column_name not in column_names:
-                conn.exec_driver_sql(
-                    f"ALTER TABLE wikidata ADD COLUMN {column_name} {column_type}"
-                )
 
 def main(wikidata_db: str) -> None:
     rows = connect_castles_db()
