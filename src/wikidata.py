@@ -21,7 +21,7 @@ class WikiDataOutput(output_base):
     osm_way_id: Mapped[str | None] = mapped_column(String, nullable=True)
     website: Mapped[str | None] = mapped_column(String, nullable=True)
     threed_model: Mapped[str | None] = mapped_column(String, nullable=True)
-
+    youtube_id: Mapped[str | None] = mapped_column(String, nullable=True)
 
 def setup_wikidata_mapping(engine: Engine, table_name: str = "string") -> str:
     inspector = inspect(engine)

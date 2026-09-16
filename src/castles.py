@@ -15,7 +15,6 @@ def setup_mappings(engine: Engine) -> None:
     )
     mapper_registry.map_imperatively(Castle, castles_table)
 
-
 def connect_castles_db():
     castles_engine = create_engine(CASTLES_SQLITE)
     setup_mappings(castles_engine)

@@ -1,4 +1,3 @@
-from typing import Any
 from args import parse_args
 from castles import Castle, connect_castles_db
 from sqlalchemy import create_engine, inspect
@@ -11,7 +10,8 @@ osm_node_property_id: int = 1000011693
 osm_relation_property_id: int = 1000000402
 osm_way_property_id: int = 1000010689
 website_property_id: int = 1000000856
-threed_model_property_id: int = 1000004896  
+threed_model_property_id: int = 1000004896
+youtube_property_id: int = 1000001651
 
 def ensure_output_schema(engine: Engine) -> None:
     output_base.metadata.create_all(engine)
@@ -25,6 +25,7 @@ def ensure_output_schema(engine: Engine) -> None:
         "osm_way_id": "TEXT",
         "website": "TEXT",
         "threed_model": "TEXT",
+        "youtube_id": "TEXT"
     }
 
     # Legacy schema includes a required osm_id column; recreate table for new layout.
@@ -40,7 +41,6 @@ def ensure_output_schema(engine: Engine) -> None:
                 conn.exec_driver_sql(
                     f"ALTER TABLE wikidata ADD COLUMN {column_name} {column_type}"
                 )
-
 
 def main(wikidata_db: str) -> None:
     rows = connect_castles_db()
@@ -71,7 +71,7 @@ def main(wikidata_db: str) -> None:
                 .filter(WikiData.id == wikidata_id)
                 # OSM Way Id and OSM Relation Id
                 .filter(
-                    WikiData.property_id.in_([osm_node_property_id, osm_relation_property_id, osm_way_property_id, website_property_id, threed_model_property_id])
+                    WikiData.property_id.in_([osm_node_property_id, osm_relation_property_id, osm_way_property_id, website_property_id, threed_model_property_id, youtube_property_id])
                 )
                 .all()
             )
@@ -128,8 +128,18 @@ def main(wikidata_db: str) -> None:
                 None,
             )
 
-            if threed_model_value:
-                print("Found 3D model for castle:", castle.qid, "Value:", threed_model_value)
+            youtube_value = next(
+                (
+                    getattr(item, "string", None)
+                    for item in first_match
+                    if item.property_id == youtube_property_id
+                    and getattr(item, "string", None)
+                ),
+                None,
+            )
+
+            if youtube_value:
+                print("Found YouTube link for castle:", castle.qid, "Value:", youtube_value)
 
             output_rows.append(
                 WikiDataOutput(
@@ -139,6 +149,7 @@ def main(wikidata_db: str) -> None:
                     osm_way_id=osm_way_id_value,
                     website=website_value,
                     threed_model=threed_model_value,
+                    youtube_id=youtube_value,
                 )
             )
 
