@@ -42,10 +42,10 @@ This project can also be used for the purpose of quality control of Wikidata. Fo
 Note: Do not forget to create an index on wikidata db, else it is very slow. Normally `wd2sql` 
 automatically creates indexes. If not, create the relevant index manually, like:
 
-``sql
+```sql
 CREATE INDEX IF NOT EXISTS idx_string_id
 ON "string" ("id");
-``
+```
 
 ## Added Attributes
 

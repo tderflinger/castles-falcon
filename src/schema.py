@@ -16,6 +16,8 @@ def ensure_output_schema(engine: Engine) -> None:
         "website": "TEXT",
         "threed_model": "TEXT",
         "youtube_id": "TEXT",
+        "commons_category": "TEXT",
+        "design_plans": "TEXT"
     }
 
     # Legacy schema includes a required osm_id column; recreate table for new layout.

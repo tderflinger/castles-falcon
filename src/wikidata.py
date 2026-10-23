@@ -23,6 +23,8 @@ class WikiDataOutput(output_base):
     website: Mapped[str | None] = mapped_column(String, nullable=True)
     threed_model: Mapped[str | None] = mapped_column(String, nullable=True)
     youtube_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    commons_category: Mapped[str | None] = mapped_column(String, nullable=True)
+    design_plans: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 def setup_wikidata_mapping(engine: Engine, table_name: str = "string") -> str:

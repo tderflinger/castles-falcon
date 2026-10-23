@@ -17,6 +17,16 @@ osm_way_property_id: int = 1000010689
 website_property_id: int = 1000000856
 threed_model_property_id: int = 1000004896
 youtube_property_id: int = 1000001651
+commons_category_id: int = 1000000373
+design_plans__property_id: int = 1000003311
+
+def _get_property_string(items: list[WikiData], property_id: int) -> str | None:
+    for item in items:
+        if item.property_id == property_id:
+            value: str | None = getattr(item, "string", None)
+            if value:
+                return value
+    return None
 
 
 def main(wikidata_db: str) -> None:
@@ -43,6 +53,8 @@ def main(wikidata_db: str) -> None:
             if wikidata_id is None:
                 continue
 
+            # filters the entries to find the first match with the specified property IDs.
+            # If not one of those properties found, the castle will be skipped.
             first_match = (
                 wikidata_session.query(WikiData)
                 .filter(WikiData.id == wikidata_id)
@@ -56,73 +68,30 @@ def main(wikidata_db: str) -> None:
                             website_property_id,
                             threed_model_property_id,
                             youtube_property_id,
+                            commons_category_id,
+                            design_plans__property_id,
                         ]
                     )
                 )
                 .all()
             )
-            if not first_match:
-                continue
+            #if not first_match:
+            #    continue
 
-            osm_node_id_value = next(
-                (
-                    getattr(item, "string", None)
-                    for item in first_match
-                    if item.property_id == osm_node_property_id
-                    and getattr(item, "string", None)
-                ),
-                None,
+            osm_node_id_value = _get_property_string(
+                first_match, osm_node_property_id
             )
-
-            osm_relation_id_value = next(
-                (
-                    getattr(item, "string", None)
-                    for item in first_match
-                    if item.property_id == osm_relation_property_id
-                    and getattr(item, "string", None)
-                ),
-                None,
+            osm_relation_id_value = _get_property_string(
+                first_match, osm_relation_property_id
             )
-
-            osm_way_id_value = next(
-                (
-                    getattr(item, "string", None)
-                    for item in first_match
-                    if item.property_id == osm_way_property_id
-                    and getattr(item, "string", None)
-                ),
-                None,
+            osm_way_id_value = _get_property_string(first_match, osm_way_property_id)
+            website_value = _get_property_string(first_match, website_property_id)
+            threed_model_value = _get_property_string(
+                first_match, threed_model_property_id
             )
-
-            website_value = next(
-                (
-                    getattr(item, "string", None)
-                    for item in first_match
-                    if item.property_id == website_property_id
-                    and getattr(item, "string", None)
-                ),
-                None,
-            )
-
-            threed_model_value = next(
-                (
-                    getattr(item, "string", None)
-                    for item in first_match
-                    if item.property_id == threed_model_property_id
-                    and getattr(item, "string", None)
-                ),
-                None,
-            )
-
-            youtube_value = next(
-                (
-                    getattr(item, "string", None)
-                    for item in first_match
-                    if item.property_id == youtube_property_id
-                    and getattr(item, "string", None)
-                ),
-                None,
-            )
+            youtube_value = _get_property_string(first_match, youtube_property_id)
+            commons_category_value = _get_property_string(first_match, commons_category_id)
+            design_plans_value = _get_property_string(first_match, design_plans__property_id)
 
             if youtube_value:
                 print(
@@ -141,6 +110,8 @@ def main(wikidata_db: str) -> None:
                     website=website_value,
                     threed_model=threed_model_value,
                     youtube_id=youtube_value,
+                    design_plans=design_plans_value,
+                    commons_category=commons_category_value,
                 )
             )
 
