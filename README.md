@@ -57,6 +57,8 @@ The following attributes from Wikidata are added to the `wikidata` table in the 
 - osm_way_id: The OpenStreetMap way id of the castle, if available
 - website: The website entry from Wikidata, if available
 - threed_model: The link to a 3D model of the castle, if available
+- commons_category: Wikimedia Commons category
+- design_plans: Design plan files on Wikimedia Commons
 
 ## Provenance
 
@@ -67,7 +69,14 @@ https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.bz2 from 8 Sep
 
 The logo image was generated with GenAI. The Python source code was partially created with the help of GenAI.
 
+## Data Mirrors
+
+You can also find the dataset at the following location:
+
+* Hugging Face: https://huggingface.co/datasets/td8/castles-falcon
+
 ## License
 
 The code in this repository is licensed as MIT. The data in the database
-is license as CC-BY.
+is licensed as CC0.
+
