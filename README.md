@@ -63,6 +63,8 @@ The following attributes from Wikidata are added to the `wikidata` table in the 
 
 The data in `castles-falcon.gpkg` is based on the [castlemap-dataset](https://github.com/Flightmussy/castlemap-dataset) v2.2.0 of Flightmussy, licensed as CC0.
 
+Please support Flightmussy from the "The Castle Map" (https://thecastlemap.com). He made all of this possible.
+
 The relevant Wikidata attributes copied into `castles-falcon.gpkg` are from
 https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.bz2 from 8 September 2026 and licensed as CC0.
 
