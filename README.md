@@ -17,6 +17,8 @@ In order to reproduce the data pipeline, install the following applications:
 - wget
 - bzip2
 - wd2sql: https://github.com/p-e-w/wd2sql
+- GDAL
+- DuckDB
 
 This pipeline has only been tested on Ubuntu Linux.
 
@@ -30,9 +32,6 @@ This pipeline has only been tested on Ubuntu Linux.
 Run like this:
 ```bash
 ./pipeline.sh
-uv sync --frozen
-source ./.venv/bin/activate
-python3 src/main.py path/to/wikidata.db
 ```
 
 Note that you need at a minimum twice the harddisk space of the Wikidata dump (currently about 96G), likely some more because of the index creation.
