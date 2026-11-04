@@ -12,3 +12,12 @@ wheels/
 castles.gpkg
 run.sh
 ideas.md
+
+conda-activate.txt
+castle.geojson
+castle-osm.json
+castles-falcon.parquet
+castles-falcon-wikidata.parquet
+osm2geojson
+osm-get-data.sh
+

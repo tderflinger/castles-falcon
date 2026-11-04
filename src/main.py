@@ -2,23 +2,26 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from args import parse_args
-from castles import Castle, connect_castles_db
+from castles import connect_castles_db
 from schema import ensure_output_schema
 from wikidata import (
     WikiData,
     WikiDataOutput,
     qid_to_wikidata_id,
-    setup_wikidata_mapping,
 )
+from wikidata import setup_wikidata_mapping
 
-osm_node_property_id: int = 1000011693
-osm_relation_property_id: int = 1000000402
-osm_way_property_id: int = 1000010689
-website_property_id: int = 1000000856
-threed_model_property_id: int = 1000004896
-youtube_property_id: int = 1000001651
-commons_category_id: int = 1000000373
-design_plans__property_id: int = 1000003311
+CASTLES_FALCON_DB: str = "castles-falcon.gpkg"
+
+OSM_NODE_PROPERTY_ID: int = 1000011693
+OSM_RELATION_PROPERTY_ID: int = 1000000402
+OSM_WAY_PROPERTY_ID: int = 1000010689
+WEBSITE_PROPERTY_ID: int = 1000000856
+THREED_MODEL_PROPERTY_ID: int = 1000004896
+YOUTUBE_PROPERTY_ID: int = 1000001651
+COMMONS_CATEGORY_ID: int = 1000000373
+DESIGN_PLANS_PROPERTY_ID: int = 1000003311
+
 
 def _get_property_string(items: list[WikiData], property_id: int) -> str | None:
     for item in items:
@@ -30,21 +33,14 @@ def _get_property_string(items: list[WikiData], property_id: int) -> str | None:
 
 
 def main(wikidata_db: str) -> None:
+    print("Connecting to castles database...")
     rows = connect_castles_db()
-    cols = [column.key for column in Castle.__table__.columns]
-
-    print("Columns:", ", ".join(cols))
-    print("Row count:", len(rows))
 
     wikidata_engine = create_engine(f"sqlite:///{wikidata_db}")
-    wikidata_table_name = setup_wikidata_mapping(wikidata_engine)
-    wikidata_columns = [column.key for column in WikiData.__table__.columns]
+    setup_wikidata_mapping(wikidata_engine)
 
-    print("WikiData table:", wikidata_table_name)
-    print("WikiData columns:", ", ".join(wikidata_columns))
-
-    castles_ext_engine = create_engine("sqlite:///castles-falcon.gpkg")
-    ensure_output_schema(castles_ext_engine)
+    castles_engine = create_engine(f"sqlite:///{CASTLES_FALCON_DB}")
+    ensure_output_schema(castles_engine)
 
     output_rows: list[WikiDataOutput] = []
     with Session(wikidata_engine) as wikidata_session:
@@ -62,44 +58,36 @@ def main(wikidata_db: str) -> None:
                 .filter(
                     WikiData.property_id.in_(
                         [
-                            osm_node_property_id,
-                            osm_relation_property_id,
-                            osm_way_property_id,
-                            website_property_id,
-                            threed_model_property_id,
-                            youtube_property_id,
-                            commons_category_id,
-                            design_plans__property_id,
+                            OSM_NODE_PROPERTY_ID,
+                            OSM_RELATION_PROPERTY_ID,
+                            OSM_WAY_PROPERTY_ID,
+                            WEBSITE_PROPERTY_ID,
+                            THREED_MODEL_PROPERTY_ID,
+                            YOUTUBE_PROPERTY_ID,
+                            COMMONS_CATEGORY_ID,
+                            DESIGN_PLANS_PROPERTY_ID,
                         ]
                     )
                 )
                 .all()
             )
-            #if not first_match:
-            #    continue
 
-            osm_node_id_value = _get_property_string(
-                first_match, osm_node_property_id
-            )
+            osm_node_id_value = _get_property_string(first_match, OSM_NODE_PROPERTY_ID)
             osm_relation_id_value = _get_property_string(
-                first_match, osm_relation_property_id
+                first_match, OSM_RELATION_PROPERTY_ID
             )
-            osm_way_id_value = _get_property_string(first_match, osm_way_property_id)
-            website_value = _get_property_string(first_match, website_property_id)
+            osm_way_id_value = _get_property_string(first_match, OSM_WAY_PROPERTY_ID)
+            website_value = _get_property_string(first_match, WEBSITE_PROPERTY_ID)
             threed_model_value = _get_property_string(
-                first_match, threed_model_property_id
+                first_match, THREED_MODEL_PROPERTY_ID
             )
-            youtube_value = _get_property_string(first_match, youtube_property_id)
-            commons_category_value = _get_property_string(first_match, commons_category_id)
-            design_plans_value = _get_property_string(first_match, design_plans__property_id)
-
-            if youtube_value:
-                print(
-                    "Found YouTube link for castle:",
-                    castle.qid,
-                    "Value:",
-                    youtube_value,
-                )
+            youtube_value = _get_property_string(first_match, YOUTUBE_PROPERTY_ID)
+            commons_category_value = _get_property_string(
+                first_match, COMMONS_CATEGORY_ID
+            )
+            design_plans_value = _get_property_string(
+                first_match, DESIGN_PLANS_PROPERTY_ID
+            )
 
             output_rows.append(
                 WikiDataOutput(
@@ -115,7 +103,7 @@ def main(wikidata_db: str) -> None:
                 )
             )
 
-    with Session(castles_ext_engine) as output_session:
+    with Session(castles_engine) as output_session:
         output_session.query(WikiDataOutput).delete()
         output_session.add_all(output_rows)
         output_session.commit()

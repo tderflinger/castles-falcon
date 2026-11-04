@@ -128,3 +128,9 @@ CI should enforce the same checks to keep local and remote behavior consistent.
 - Avoid unrelated refactors in feature or bug-fix branches.
 - Update tests and docs in the same change when behavior changes.
 - If requirements are ambiguous, pick the simplest robust option and document assumptions.
+
+## Style Guide
+
+Always for the Python Style Guide PEP 8: https://peps.python.org/pep-0008/
+
+
