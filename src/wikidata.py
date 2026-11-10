@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, Table, inspect
+from sqlalchemy import Integer, String, Table, Text, inspect
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Mapped, declarative_base, mapped_column, registry
 
@@ -25,6 +25,19 @@ class WikiDataOutput(output_base):
     youtube_id: Mapped[str | None] = mapped_column(String, nullable=True)
     commons_category: Mapped[str | None] = mapped_column(String, nullable=True)
     design_plans: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class WikipediaOutput(output_base):
+    """Wikipedia article content in castles-falcon.gpkg."""
+
+    __tablename__ = "wikipedia"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    qid: Mapped[str] = mapped_column(String, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    abstract: Mapped[str | None] = mapped_column(Text, nullable=True)
+    article_body_html: Mapped[str | None] = mapped_column(Text, nullable=True)
+    article_body_wikitext: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 def setup_wikidata_mapping(engine: Engine, table_name: str = "string") -> str:

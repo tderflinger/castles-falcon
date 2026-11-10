@@ -1,3 +1,6 @@
+from urllib.parse import unquote, urlsplit
+
+import duckdb
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -7,9 +10,10 @@ from schema import ensure_output_schema
 from wikidata import (
     WikiData,
     WikiDataOutput,
+    WikipediaOutput,
     qid_to_wikidata_id,
+    setup_wikidata_mapping,
 )
-from wikidata import setup_wikidata_mapping
 
 CASTLES_FALCON_DB: str = "castles-falcon.gpkg"
 
@@ -32,7 +36,14 @@ def _get_property_string(items: list[WikiData], property_id: int) -> str | None:
     return None
 
 
-def main(wikidata_db: str) -> None:
+def _wikipedia_title(url: str | None) -> str | None:
+    if not url:
+        return None
+    title = urlsplit(url).path.rsplit("/", 1)[-1]
+    return unquote(title).replace("_", " ") or None
+
+
+def main(wikidata_db: str, wikipedia_parquet: str) -> None:
     print("Connecting to castles database...")
     rows = connect_castles_db()
 
@@ -43,6 +54,43 @@ def main(wikidata_db: str) -> None:
     ensure_output_schema(castles_engine)
 
     output_rows: list[WikiDataOutput] = []
+    wikipedia_rows: list[WikipediaOutput] = []
+    title_to_qids: dict[str, list[str]] = {}
+    for castle in rows:
+        title = _wikipedia_title(getattr(castle, "wikipedia", None))
+        if title:
+            title_to_qids.setdefault(title, []).append(str(castle.qid))
+
+        article_bodies: dict[str, list[tuple[str | None, ...]]] = {}
+    if title_to_qids:
+        with duckdb.connect() as wikipedia_connection:
+            article_rows = wikipedia_connection.execute(
+                """
+                SELECT title, abstract, article_body_html, article_body_wikitext
+                FROM read_parquet(?)
+                WHERE title IN (SELECT unnest(?))
+                """,
+                [wikipedia_parquet, list(title_to_qids)],
+            ).fetchall()
+        article_bodies: dict[str, list[tuple[str | None, ...]]] = {}
+        for article_row in article_rows:
+            article_bodies.setdefault(article_row[0], []).append(article_row[1:])
+
+    for title, qids in title_to_qids.items():
+        for abstract, article_body_html, article_body_wikitext in article_bodies.get(
+            title, []
+        ):
+            wikipedia_rows.extend(
+                WikipediaOutput(
+                    qid=qid,
+                    title=title,
+                    abstract=abstract,
+                    article_body_html=article_body_html,
+                    article_body_wikitext=article_body_wikitext,
+                )
+                for qid in qids
+            )
+
     with Session(wikidata_engine) as wikidata_session:
         for _i, castle in enumerate(rows, 1):
             wikidata_id = qid_to_wikidata_id(castle.qid)
@@ -106,11 +154,14 @@ def main(wikidata_db: str) -> None:
     with Session(castles_engine) as output_session:
         output_session.query(WikiDataOutput).delete()
         output_session.add_all(output_rows)
+        output_session.query(WikipediaOutput).delete()
+        output_session.add_all(wikipedia_rows)
         output_session.commit()
 
     print("Written to castles-falcon.gpkg table wikidata:", len(output_rows))
+    print("Written to castles-falcon.gpkg table wikipedia:", len(wikipedia_rows))
 
 
 if __name__ == "__main__":
     args = parse_args()
-    main(args.wikidata_db_path)
+    main(args.wikidata_db_path, args.wikipedia_parquet_path)

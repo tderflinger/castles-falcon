@@ -6,6 +6,16 @@ from wikidata import output_base
 def ensure_output_schema(engine: Engine) -> None:
     output_base.metadata.create_all(engine)
     inspector = inspect(engine)
+    wikipedia_columns = {
+        column["name"] for column in inspector.get_columns("wikipedia")
+    }
+    with engine.begin() as conn:
+        for column_name in ("abstract", "article_body_wikitext"):
+            if column_name not in wikipedia_columns:
+                conn.exec_driver_sql(
+                    f"ALTER TABLE wikipedia ADD COLUMN {column_name} TEXT"
+                )
+
     column_names = {column["name"] for column in inspector.get_columns("wikidata")}
 
     required_columns = {

@@ -6,7 +6,8 @@
 
 The goal of this project is to extend the [castlemap-dataset](https://github.com/Flightmussy/castlemap-dataset) from Flightmussy with more attributes from [Wikidata](https://www.wikidata.org/).
 
-This distribution is called `castles-falcon`.
+This distribution is called `castles-falcon`. Note, due to the large size of the GeoPackage and Parquet data files, they are not hosted on this GitHub repository but on Hugging
+Face. If you are interested in downloading the final files, please visit: https://huggingface.co/datasets/td8/castles-falcon
 
 ## Prerequisites
 
@@ -59,6 +60,15 @@ The following attributes from Wikidata are added to the `wikidata` table in the 
 - commons_category: Wikimedia Commons category
 - design_plans: Design plan files on Wikimedia Commons
 
+The following attributes from the [Wikipedia Parquet](https://huggingface.co/datasets/wikimedia/linked-openstreetmap-wikidata-wikipedia-wikivoyage) file are added to the `wikipedia` table:
+
+- qid: The Wikidata entity ID
+- title: The title of the castle
+- abstract: Abstract text, the beginning of each English Wikipedia article of the castle
+- article_body_html: The HTML text of each English Wikipedia article of the castle
+- article_body_wikitext: The Wikitext of each English Wikipedia article of the castle
+- article_body_markdown: The Markdown generated from each HTML text of the English Wikipedia article of the castle
+
 ## Provenance
 
 The data in `castles-falcon.gpkg` is based on the [castlemap-dataset](https://github.com/Flightmussy/castlemap-dataset) v2.2.0 of Flightmussy, licensed as CC0.
@@ -67,6 +77,9 @@ Please support Flightmussy from the "The Castle Map" (https://thecastlemap.com).
 
 The relevant Wikidata attributes copied into `castles-falcon.gpkg` are from
 https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.bz2 from 8 September 2026 and licensed as CC0.
+
+The relevant Wikipedia attributes copied into `castles-falcon.gpkg` are from the [Linked OpenStreetMap x Wikidata x Wikipedia x Wikivoyage dataset](https://huggingface.co/datasets/wikimedia/linked-openstreetmap-wikidata-wikipedia-wikivoyage) from September 15, 2026. The license
+is CC BY-SA (https://en.wikipedia.org/wiki/Wikipedia:Copyrights).
 
 The logo image was generated with GenAI. The Python source code was partially created with the help of GenAI.
 
@@ -79,5 +92,6 @@ You can also find the dataset at the following location:
 ## License
 
 The code in this repository is licensed as MIT. The data in the database
-is licensed as CC0.
+is licensed as CC0. The relevant Wikipedia attributes in the database table `wikipedia` are licensed as CC BY-SA (https://en.wikipedia.org/wiki/Wikipedia:Copyrights).
+
 

@@ -21,3 +21,9 @@ castles-falcon-wikidata.parquet
 osm2geojson
 osm-get-data.sh
 
+audio
+bin
+src/convert_html_markdown.py
+
+convert-html-to-markdown.sh
+castles-falcon.gpkg
