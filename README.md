@@ -47,6 +47,20 @@ CREATE INDEX IF NOT EXISTS idx_string_id
 ON "string" ("id");
 ```
 
+## Validation
+
+Run the Great Expectations check against all rows in `castlemap-castles`:
+
+```bash
+uv run python src/validate_wikipedia.py
+```
+
+The check requires non-null `wikipedia` values to start with `https://` and
+contain the `wikipedia.org` domain, so links to Wikipedia in any language are
+accepted. It reports missing values separately and exits with a nonzero status
+if the check fails. The GX configuration and results are temporary; the script
+recreates the validation each time it runs.
+
 ## Added Attributes
 
 The following attributes from Wikidata are added to the `wikidata` table in the `castles-falcon.gpkg` database:
@@ -84,10 +98,8 @@ is licensed as CC0. The relevant Wikipedia attributes in the database table `wik
 
 ## Disclaimer
 
-The data provided in this dataset is sourced from Wikidata and Flightmussy. Thomas Derflinger acts solely as a distributor of this information and does not claim ownership of the underlying content.
+The data provided in this dataset is sourced from Wikidata and Flightmussy. 
 
 “As Is” Basis: This dataset is provided “as is” without any guarantees or warranties regarding its completeness, accuracy, or suitability for a particular purpose.
-
-External Links & Third-Party Content: This dataset contains links to external websites. Thomas Derflinger does not monitor, verify, or control the content, privacy policies, or practices of these third-party sites. By following these links, you acknowledge that you are solely responsible for your interaction with external content.
 
 If you want to report an issue with this dataset, please contact me via my homepage (https://www.tderflinger.com/contact).
