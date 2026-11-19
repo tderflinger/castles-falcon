@@ -27,3 +27,5 @@ src/convert_html_markdown.py
 
 convert-html-to-markdown.sh
 castles-falcon.gpkg
+
+reports

@@ -52,14 +52,16 @@ ON "string" ("id");
 Run the Great Expectations check against all rows in `castlemap-castles`:
 
 ```bash
-uv run python src/validate_wikipedia.py
+uv run python src/validate_database.py
 ```
 
 The check requires non-null `wikipedia` values to start with `https://` and
 contain the `wikipedia.org` domain, so links to Wikipedia in any language are
-accepted. It reports missing values separately and exits with a nonzero status
-if the check fails. The GX configuration and results are temporary; the script
-recreates the validation each time it runs.
+accepted. It also checks that non-null `qid` values consist of `Q` followed by
+one or more digits, with no decimal part. It reports missing values separately
+and exits with a nonzero status if either check fails. Great Expectations stores
+its configuration and checkpoint under `reports/gx/`. Each run updates the
+local Data Docs site at `reports/gx/uncommitted/data_docs/local_site/index.html`.
 
 ## Added Attributes
 
