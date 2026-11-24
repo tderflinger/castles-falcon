@@ -11,6 +11,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "wikipedia_parquet_path",
-        help="Absolute or relative path to Wikipedia Parquet file",
+        nargs="?",
+        default="",
+        help="Optional path to Wikipedia Parquet file",
     )
     return parser.parse_args()

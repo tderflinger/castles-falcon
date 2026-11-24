@@ -7,7 +7,7 @@ class Castle:
 
 
 mapper_registry = registry()
-CASTLES_SQLITE: str = "sqlite:///castles.gpkg"
+CASTLES_SQLITE: str = "sqlite:///data/landing/castles.gpkg"
 
 
 def setup_mappings(engine: Engine) -> None:

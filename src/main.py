@@ -15,7 +15,7 @@ from wikidata import (
     setup_wikidata_mapping,
 )
 
-CASTLES_FALCON_DB: str = "castles-falcon.gpkg"
+CASTLES_FALCON_DB: str = "data/output/castles-falcon.gpkg"
 
 OSM_NODE_PROPERTY_ID: int = 1000011693
 OSM_RELATION_PROPERTY_ID: int = 1000000402
@@ -44,6 +44,8 @@ def _wikipedia_title(url: str | None) -> str | None:
 
 
 def main(wikidata_db: str, wikipedia_parquet: str) -> None:
+    include_wikipedia = bool(wikipedia_parquet.strip())
+
     print("Connecting to castles database...")
     rows = connect_castles_db()
 
@@ -51,28 +53,32 @@ def main(wikidata_db: str, wikipedia_parquet: str) -> None:
     setup_wikidata_mapping(wikidata_engine)
 
     castles_engine = create_engine(f"sqlite:///{CASTLES_FALCON_DB}")
-    ensure_output_schema(castles_engine)
+    ensure_output_schema(castles_engine, include_wikipedia=include_wikipedia)
+    if not include_wikipedia:
+        with castles_engine.begin() as connection:
+            connection.exec_driver_sql("DROP TABLE IF EXISTS wikipedia")
 
     output_rows: list[WikiDataOutput] = []
     wikipedia_rows: list[WikipediaOutput] = []
     title_to_qids: dict[str, list[str]] = {}
-    for castle in rows:
-        title = _wikipedia_title(getattr(castle, "wikipedia", None))
-        if title:
-            title_to_qids.setdefault(title, []).append(str(castle.qid))
+    article_bodies: dict[str, list[tuple[str | None, ...]]] = {}
+    if include_wikipedia:
+        article_rows = []
+        for castle in rows:
+            title = _wikipedia_title(getattr(castle, "wikipedia", None))
+            if title:
+                title_to_qids.setdefault(title, []).append(str(castle.qid))
 
-        article_bodies: dict[str, list[tuple[str | None, ...]]] = {}
-    if title_to_qids:
-        with duckdb.connect() as wikipedia_connection:
-            article_rows = wikipedia_connection.execute(
-                """
-                SELECT title, abstract, article_body_html, article_body_wikitext
-                FROM read_parquet(?)
-                WHERE title IN (SELECT unnest(?))
-                """,
-                [wikipedia_parquet, list(title_to_qids)],
-            ).fetchall()
-        article_bodies: dict[str, list[tuple[str | None, ...]]] = {}
+        if title_to_qids:
+            with duckdb.connect() as wikipedia_connection:
+                article_rows = wikipedia_connection.execute(
+                    """
+                    SELECT title, abstract, article_body_html, article_body_wikitext
+                    FROM read_parquet(?)
+                    WHERE title IN (SELECT unnest(?))
+                    """,
+                    [wikipedia_parquet, list(title_to_qids)],
+                ).fetchall()
         for article_row in article_rows:
             article_bodies.setdefault(article_row[0], []).append(article_row[1:])
 
@@ -154,12 +160,16 @@ def main(wikidata_db: str, wikipedia_parquet: str) -> None:
     with Session(castles_engine) as output_session:
         output_session.query(WikiDataOutput).delete()
         output_session.add_all(output_rows)
-        output_session.query(WikipediaOutput).delete()
-        output_session.add_all(wikipedia_rows)
+        if include_wikipedia:
+            output_session.query(WikipediaOutput).delete()
+            output_session.add_all(wikipedia_rows)
         output_session.commit()
 
     print("Written to castles-falcon.gpkg table wikidata:", len(output_rows))
-    print("Written to castles-falcon.gpkg table wikipedia:", len(wikipedia_rows))
+    if include_wikipedia:
+        print("Written to castles-falcon.gpkg table wikipedia:", len(wikipedia_rows))
+    else:
+        print("Skipped Wikipedia table: no parquet path provided.")
 
 
 if __name__ == "__main__":

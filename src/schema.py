@@ -3,18 +3,22 @@ from sqlalchemy import Engine, inspect
 from wikidata import output_base
 
 
-def ensure_output_schema(engine: Engine) -> None:
-    output_base.metadata.create_all(engine)
+def ensure_output_schema(engine: Engine, include_wikipedia: bool = True) -> None:
+    output_tables = [output_base.metadata.tables["wikidata"]]
+    if include_wikipedia:
+        output_tables.append(output_base.metadata.tables["wikipedia"])
+    output_base.metadata.create_all(engine, tables=output_tables)
     inspector = inspect(engine)
-    wikipedia_columns = {
-        column["name"] for column in inspector.get_columns("wikipedia")
-    }
-    with engine.begin() as conn:
-        for column_name in ("abstract", "article_body_wikitext"):
-            if column_name not in wikipedia_columns:
-                conn.exec_driver_sql(
-                    f"ALTER TABLE wikipedia ADD COLUMN {column_name} TEXT"
-                )
+    if include_wikipedia:
+        wikipedia_columns = {
+            column["name"] for column in inspector.get_columns("wikipedia")
+        }
+        with engine.begin() as conn:
+            for column_name in ("abstract", "article_body_wikitext"):
+                if column_name not in wikipedia_columns:
+                    conn.exec_driver_sql(
+                        f"ALTER TABLE wikipedia ADD COLUMN {column_name} TEXT"
+                    )
 
     column_names = {column["name"] for column in inspector.get_columns("wikidata")}
 
@@ -34,7 +38,7 @@ def ensure_output_schema(engine: Engine) -> None:
     if "osm_id" in column_names:
         with engine.begin() as conn:
             conn.exec_driver_sql("DROP TABLE wikidata")
-        output_base.metadata.create_all(engine)
+        output_base.metadata.create_all(engine, tables=output_tables)
         return
 
     with engine.begin() as conn:
